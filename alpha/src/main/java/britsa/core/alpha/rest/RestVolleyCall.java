@@ -111,6 +111,7 @@ public class RestVolleyCall {
         }
 
         // throwing service failed exception
+        session.deleteSession(context, RESPONSE_STRING);
         throw new AppException(context, AppError.SERVICE_CALL_FAILED);
     }
 

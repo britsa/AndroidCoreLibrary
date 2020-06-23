@@ -64,4 +64,13 @@ public class AppSession {
         return this.sharedPreferences.getString(id, defaultValue);
     }
 
+    public void deleteSession(Context context, int id) {
+        deleteSession(context, context.getString(id));
+    }
+
+    public void deleteSession(Context context, String id) {
+        this.initialize(context);
+        this.sharedPreferences.edit().remove(id).apply();
+    }
+
 }
