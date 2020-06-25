@@ -12,9 +12,12 @@ import britsa.core.alpha.utils.LibraryCommonUtils;
 public class AppSession {
 
     private SharedPreferences sharedPreferences;
+    private static AppSession appSessionInstance = null;
 
     public static AppSession getSessionObject() {
-        return new AppSession();
+        if (appSessionInstance == null)
+            appSessionInstance = new AppSession();
+        return appSessionInstance;
     }
 
     private void initialize(Context context) {
