@@ -17,11 +17,9 @@ import java.text.MessageFormat;
 import java.util.HashMap;
 import java.util.Map;
 
-import britsa.core.alpha.R;
 import britsa.core.alpha.exceptions.AppError;
 import britsa.core.alpha.exceptions.AppException;
 import britsa.core.alpha.logging.LogHelper;
-import britsa.core.alpha.session.AppSession;
 import britsa.core.alpha.utils.LibraryCommonUtils;
 import britsa.core.alpha.utils.RestVolleyCallUtils;
 
@@ -44,13 +42,22 @@ public class RestVolleyCall {
 
     // headers and body
     public static Object make(@NonNull final Context context, final int requestMethod, @NonNull final String serviceURL, final Map<String, String> headers, final Object body, final Class<?> classType) throws IOException, AppException {
+        // Initializing the required log formats
         final String REQUEST_LOG = "ServiceCall Request Log: {0} method call to {1}; Headers: [{2}]; Body: [{3}]";
-        final String RESPONSE_LOG_SUCCESS = "ServiceCall Response Success Log: {0} method call to {1}; Response: [{2}]";
-        final String RESPONSE_LOG_FAILURE = "ServiceCall Response Failure Log: {0} method call to {1}; Response: [{2}]";
+        final String RESPONSE_LOG_SUCCESS = "ServiceCall Response Success Log: {0} method call to {1}; Time: [{2}]; Response: [{3}]";
+        final String RESPONSE_LOG_FAILURE = "ServiceCall Response Failure Log: {0} method call to {1}; Time: [{2}]; Response: [{3}]";
         final String RESPONSE_STRING = "response_string";
 
-        RequestQueue queue = Volley.newRequestQueue(context); // Creating a request queue object
-        final AppSession session = AppSession.getSessionObject(); // Creating session object
+        // Declaring time variables
+        final long requestStartTime;
+        final long[] totalResponseTime = new long[1];
+
+        // Declaring and initializing the response value variable
+        final String[] responseValue = new String[1];
+        responseValue[0] = null;
+
+        // Creating a request queue object
+        RequestQueue queue = Volley.newRequestQueue(context);
 
         // fetching the headers of the request
         Map<String, String> requestHeaders = new HashMap<>();
@@ -70,6 +77,9 @@ public class RestVolleyCall {
         // Logging the request
         LogHelper.info(context, MessageFormat.format(REQUEST_LOG, requestMethodString, serviceURL, LibraryCommonUtils.convertObjectToString(FINAL_REQUEST_HEADERS), FINAL_REQUEST_BODY));
 
+        // Start time of request hit
+        requestStartTime = System.currentTimeMillis();
+
         // Making a call
         StringRequest stringRequest = new StringRequest(
                 requestMethod,
@@ -77,7 +87,11 @@ public class RestVolleyCall {
                 new Response.Listener<String>() {
                     @Override
                     public void onResponse(String response) {
-                        session.setNewSession(context, RESPONSE_STRING, response);
+                        // storing the response to a variable
+                        responseValue[0] = response;
+
+                        //calculating the duration
+                        totalResponseTime[0] = System.currentTimeMillis() - requestStartTime;
                     }
                 }, new Response.ErrorListener() {
             @Override
@@ -85,7 +99,11 @@ public class RestVolleyCall {
                 NetworkResponse response = error.networkResponse;
                 String errorMessage = new String(response.data);
 
-                LogHelper.info(context, MessageFormat.format(RESPONSE_LOG_FAILURE, requestMethodString, serviceURL, errorMessage));
+                //calculating the duration
+                totalResponseTime[0] = System.currentTimeMillis() - requestStartTime;
+
+                // Logging the error message
+                LogHelper.info(context, MessageFormat.format(RESPONSE_LOG_FAILURE, requestMethodString, serviceURL, totalResponseTime[0], errorMessage));
             }
         }) {
             @Override
@@ -102,16 +120,15 @@ public class RestVolleyCall {
         queue.add(stringRequest);
 
         // Fetching the response string
-        String response = session.getSessionString(context, RESPONSE_STRING);
+        String response = responseValue[0];
 
         // Converting Response string to object
         if (response != null) {
-            LogHelper.info(context, MessageFormat.format(RESPONSE_LOG_SUCCESS, requestMethodString, serviceURL, response));
+            LogHelper.info(context, MessageFormat.format(RESPONSE_LOG_SUCCESS, requestMethodString, serviceURL, totalResponseTime[0], response));
             return LibraryCommonUtils.convertStringToObject(response, classType);
         }
 
-        // throwing service failed exception
-        session.deleteSession(context, RESPONSE_STRING);
+        // throwing the service call failure exception
         throw new AppException(context, AppError.SERVICE_CALL_FAILED);
     }
 

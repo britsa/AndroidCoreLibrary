@@ -18,6 +18,10 @@ public class LogHelper {
         Log.i(context.getClass().toString(), message);
     }
 
+    public static void warning(final Context context, final String message) {
+        Log.w(context.getClass().toString(), message);
+    }
+
     public static void warning(final Context context, final AppError appError) {
         Log.w(context.getClass().toString(), MessageFormat.format(CONSTANT_LOGGER_CODE_MESSAGE, appError.getAppErrorCode(), appError.getAppErrorMessage()));
     }
